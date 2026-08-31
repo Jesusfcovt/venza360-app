@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Venza360 — Plataforma de Recorridos Virtuales</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0a0a0c;
+  --surface:#111114;
+  --border:#1e1e24;
+  --gold:#c8a96e;
+  --gold-dim:rgba(200,169,110,.15);
+  --text:#e8e8ec;
+  --muted:#6b6b78;
+  --danger:#e05555;
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{align-items:center;justify-content:center;padding:24px;}
+.auth-box{width:100%;max-width:380px;}
+.auth-logo{text-align:center;margin-bottom:40px;}
+.auth-logo img{height:56px;width:auto;opacity:.9;}
+.auth-logo h1{color:var(--text);font-size:22px;font-weight:600;margin-top:14px;letter-spacing:-.02em;}
+.auth-logo p{color:var(--muted);font-size:13px;margin-top:4px;}
+.auth-tabs{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .2s;}
+.auth-tab.active{background:var(--gold-dim);color:var(--gold);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px;letter-spacing:.02em;}
+.field input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+.field input:focus{border-color:rgba(200,169,110,.5);}
+.btn-primary{width:100%;background:var(--gold);border:none;border-radius:8px;padding:12px;color:#0a0a0c;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;font-family:'Inter',sans-serif;}
+.btn-primary:active{opacity:.85;}
+.auth-msg{font-size:12px;text-align:center;margin-top:12px;color:var(--muted);}
+.auth-msg.error{color:var(--danger);}
+.auth-msg.success{color:#5cb85c;}
+
+/* ── APP SHELL ── */
+#app-screen{flex-direction:column;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+.topbar-logo{height:32px;width:auto;opacity:.85;}
+.topbar-title{font-size:14px;font-weight:600;color:var(--text);flex:1;}
+.topbar-user{font-size:11px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-logout{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.btn-logout:active{border-color:var(--danger);color:var(--danger);}
+
+/* ── MAIN CONTENT ── */
+.main{flex:1;padding:20px;max-width:700px;width:100%;margin:0 auto;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.section-title{font-size:16px;font-weight:600;}
+.btn-new{background:var(--gold-dim);border:1px solid rgba(200,169,110,.3);border-radius:8px;padding:8px 16px;color:var(--gold);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.btn-new:active{background:rgba(200,169,110,.25);}
+
+/* ── PROJECT CARDS ── */
+.projects-grid{display:flex;flex-direction:column;gap:12px;}
+.proj-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:border-color .2s;}
+.proj-card:active{border-color:rgba(200,169,110,.4);}
+.proj-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.proj-name{font-size:15px;font-weight:600;}
+.proj-cliente{font-size:12px;color:var(--muted);margin-top:2px;}
+.proj-badge{background:var(--gold-dim);border:1px solid rgba(200,169,110,.2);border-radius:20px;padding:2px 8px;font-size:10px;color:var(--gold);white-space:nowrap;}
+.proj-meta{display:flex;gap:14px;}
+.proj-meta-item{font-size:11px;color:var(--muted);}
+.proj-meta-item span{color:var(--text);font-weight:500;}
+.proj-actions{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);}
+.btn-sm{flex:1;padding:7px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;text-align:center;transition:all .15s;border:1px solid var(--border);background:none;color:var(--muted);}
+.btn-sm:active{border-color:rgba(200,169,110,.4);color:var(--gold);}
+.btn-sm.gold{background:var(--gold-dim);border-color:rgba(200,169,110,.3);color:var(--gold);}
+.empty-state{text-align:center;padding:60px 20px;}
+.empty-state p{color:var(--muted);font-size:14px;margin-bottom:20px;}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:50;align-items:flex-end;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:24px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.btn-cancel{flex:1;background:none;border:1px solid var(--border);border-radius:8px;padding:11px;color:var(--muted);font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;}
+.btn-save{flex:2;background:var(--gold);border:none;border-radius:8px;padding:11px;color:#0a0a0c;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* ── PROJECT DETAIL ── */
+#detail-screen{flex-direction:column;}
+.detail-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;}
+.btn-back{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
+.detail-name{font-size:14px;font-weight:600;flex:1;}
+.detail-main{flex:1;padding:20px;max-width:700px;width:100%;margin:0 auto;}
+.detail-link{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:20px;}
+.detail-link label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px;}
+.link-row{display:flex;gap:8px;align-items:center;}
+.link-url{flex:1;font-size:12px;color:var(--gold);word-break:break-all;}
+.btn-copy{background:var(--gold-dim);border:1px solid rgba(200,169,110,.3);border-radius:6px;padding:6px 12px;color:var(--gold);font-size:11px;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
+.scenes-list{display:flex;flex-direction:column;gap:10px;}
+.scene-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;}
+.scene-num{width:28px;height:28px;background:var(--gold-dim);border:1px solid rgba(200,169,110,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--gold);font-weight:600;flex-shrink:0;}
+.scene-info{flex:1;min-width:0;}
+.scene-name{font-size:13px;font-weight:500;}
+.scene-desc{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.btn-del{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:4px;line-height:1;}
+.btn-del:active{color:var(--danger);}
+
+/* Upload area */
+.upload-area{border:2px dashed var(--border);border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:16px;}
+.upload-area:active{border-color:var(--gold);}
+.upload-area p{color:var(--muted);font-size:13px;margin-top:8px;}
+.upload-icon{font-size:32px;}
+.upload-preview{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.upload-thumb{width:80px;height:48px;border-radius:6px;object-fit:cover;border:1px solid var(--border);}
+input[type=file]{display:none;}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 20px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:100;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Loading */
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <div style="font-size:28px;font-weight:700;color:var(--gold);letter-spacing:-.02em;">Venza<span style="color:var(--text);">360</span></div>
+      <h1>Plataforma de Recorridos</h1>
+      <p>Para arquitectos y diseñadores</p>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchTab('login')">Iniciar sesión</div>
+      <div class="auth-tab" onclick="switchTab('register')">Registrarse</div>
+    </div>
+    <div id="login-form">
+      <div class="field"><label>Correo</label><input type="email" id="login-email" placeholder="tu@correo.com"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="login()">Entrar</button>
+    </div>
+    <div id="register-form" style="display:none">
+      <div class="field"><label>Nombre completo</label><input type="text" id="reg-nombre" placeholder="Arq. Juan García"></div>
+      <div class="field"><label>Empresa / Estudio</label><input type="text" id="reg-empresa" placeholder="García Arquitectos"></div>
+      <div class="field"><label>Correo</label><input type="email" id="reg-email" placeholder="tu@correo.com"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="reg-pass" placeholder="••••••••"></div>
+      <button class="btn-primary" onclick="register()">Crear cuenta gratis</button>
+    </div>
+    <div id="auth-msg" class="auth-msg"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="screen">
+  <div class="topbar">
+    <div style="font-size:16px;font-weight:700;color:var(--gold);">Venza<span style="color:var(--text);">360</span></div>
+    <div class="topbar-user" id="user-email"></div>
+    <button class="btn-logout" onclick="logout()">Salir</button>
+  </div>
+  <div class="main">
+    <div class="section-header">
+      <div class="section-title">Mis proyectos</div>
+      <button class="btn-new" onclick="openNewProject()">+ Nuevo</button>
+    </div>
+    <div id="projects-list" class="projects-grid">
+      <div class="loading">Cargando proyectos...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECT DETAIL -->
+<div id="detail-screen" class="screen">
+  <div class="detail-bar">
+    <button class="btn-back" onclick="showApp()">← Volver</button>
+    <div class="detail-name" id="detail-title">Proyecto</div>
+    <button class="btn-sm gold" onclick="openAddScene()" style="flex:0;white-space:nowrap;padding:6px 12px;">+ Escena</button>
+  </div>
+  <div class="detail-main">
+    <div class="detail-link">
+      <label>Link del recorrido</label>
+      <div class="link-row">
+        <div class="link-url" id="detail-link-url">—</div>
+        <button class="btn-copy" onclick="copyLink()">Copiar</button>
+      </div>
+    </div>
+    <div class="section-header" style="margin-bottom:12px;">
+      <div class="section-title" style="font-size:14px;">Escenas</div>
+    </div>
+    <div id="scenes-list" class="scenes-list">
+      <div class="loading">Cargando escenas...</div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVO PROYECTO -->
+<div class="modal-bg" id="modal-new">
+  <div class="modal">
+    <div class="modal-title">Nuevo proyecto</div>
+    <div class="field"><label>Nombre del proyecto</label><input type="text" id="new-nombre" placeholder="Residencia García"></div>
+    <div class="field"><label>Cliente</label><input type="text" id="new-cliente" placeholder="Nombre del cliente"></div>
+    <div class="field"><label>Video de YouTube (opcional)</label><input type="text" id="new-youtube" placeholder="https://youtube.com/..."></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-new')">Cancelar</button>
+      <button class="btn-save" onclick="createProject()">Crear proyecto</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NUEVA ESCENA -->
+<div class="modal-bg" id="modal-scene">
+  <div class="modal">
+    <div class="modal-title">Agregar escena</div>
+    <div class="field"><label>Nombre del espacio</label><input type="text" id="sc-nombre" placeholder="Sala principal"></div>
+    <div class="field"><label>Descripción</label><input type="text" id="sc-desc" placeholder="Breve descripción del espacio..."></div>
+    <div class="upload-area" onclick="document.getElementById('sc-file').click()">
+      <div class="upload-icon">🖼️</div>
+      <p>Toca para seleccionar imagen panorámica<br><small>JPG o PNG recomendado</small></p>
+    </div>
+    <div class="upload-preview" id="upload-preview"></div>
+    <input type="file" id="sc-file" accept="image/*" onchange="previewFile(this)">
+    <div id="upload-progress" style="display:none;font-size:12px;color:var(--gold);text-align:center;margin-bottom:12px;">Subiendo imagen...</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modal-scene')">Cancelar</button>
+      <button class="btn-save" onclick="addScene()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+const SUPA_URL = 'https://ssvympmnlwkzuatcaten.supabase.co';
+const SUPA_KEY = 'sb_publishable_ceNTk6f5PWAHkFZHc5xMUQ_4HEUJoIi';
+const { createClient } = supabase;
+const db = createClient(SUPA_URL, SUPA_KEY);
+
+var currentUser = null;
+var currentProject = null;
+
+// ── INIT ──
+db.auth.onAuthStateChange(function(event, session){
+  if(session){
+    currentUser = session.user;
+    showApp();
+    loadProjects();
+  } else {
+    currentUser = null;
+    showScreen('auth-screen');
+  }
+});
+
+// ── SCREENS ──
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+function showApp(){ showScreen('app-screen'); loadProjects(); }
+
+// ── AUTH ──
+function switchTab(tab){
+  document.querySelectorAll('.auth-tab').forEach(function(t,i){t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1));});
+  document.getElementById('login-form').style.display = tab==='login'?'':'none';
+  document.getElementById('register-form').style.display = tab==='register'?'':'none';
+  document.getElementById('auth-msg').textContent='';
+}
+
+async function login(){
+  var email=document.getElementById('login-email').value;
+  var pass=document.getElementById('login-pass').value;
+  var msg=document.getElementById('auth-msg');
+  msg.className='auth-msg'; msg.textContent='Iniciando sesión...';
+  var {error}=await db.auth.signInWithPassword({email,password:pass});
+  if(error){msg.className='auth-msg error';msg.textContent=error.message;}
+}
+
+async function register(){
+  var nombre=document.getElementById('reg-nombre').value;
+  var empresa=document.getElementById('reg-empresa').value;
+  var email=document.getElementById('reg-email').value;
+  var pass=document.getElementById('reg-pass').value;
+  var msg=document.getElementById('auth-msg');
+  msg.className='auth-msg'; msg.textContent='Creando cuenta...';
+  var {data,error}=await db.auth.signUp({email,password:pass});
+  if(error){msg.className='auth-msg error';msg.textContent=error.message;return;}
+  // Update profile
+  if(data.user){
+    await db.from('profiles').update({nombre,empresa}).eq('id',data.user.id);
+  }
+  msg.className='auth-msg success';msg.textContent='¡Cuenta creada! Revisa tu correo para confirmar.';
+}
+
+async function logout(){
+  await db.auth.signOut();
+}
+
+// ── PROJECTS ──
+async function loadProjects(){
+  if(!currentUser)return;
+  document.getElementById('user-email').textContent=currentUser.email;
+  var {data,error}=await db.from('proyectos').select('*').order('created_at',{ascending:false});
+  var el=document.getElementById('projects-list');
+  if(error||!data||data.length===0){
+    el.innerHTML='<div class="empty-state"><p>Aún no tienes proyectos.<br>Crea tu primer recorrido 360°.</p></div>';
+    return;
+  }
+  el.innerHTML=data.map(function(p){
+    var ytId=p.youtube_url?getYTId(p.youtube_url):'';
+    return '<div class="proj-card" onclick="openProject(\''+p.id+'\',\''+encodeURIComponent(p.nombre)+'\')">'+
+      '<div class="proj-card-top">'+
+        '<div><div class="proj-name">'+p.nombre+'</div>'+
+        (p.cliente?'<div class="proj-cliente">Cliente: '+p.cliente+'</div>':'')+'</div>'+
+        '<div class="proj-badge">'+(ytId?'🎬 Video':'📸 Fotos')+'</div>'+
+      '</div>'+
+      '<div class="proj-meta">'+
+        '<div class="proj-meta-item">Creado <span>'+new Date(p.created_at).toLocaleDateString('es')+'</span></div>'+
+      '</div>'+
+      '<div class="proj-actions">'+
+        '<button class="btn-sm" onclick="event.stopPropagation();deleteProject(\''+p.id+'\')">🗑 Eliminar</button>'+
+        '<button class="btn-sm gold" onclick="event.stopPropagation();copyProjectLink(\''+p.slug+'\')">🔗 Copiar link</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function getYTId(url){
+  var m=url.match(/(?:youtu\.be\/|v=|shorts\/)([^&?/]+)/);
+  return m?m[1]:'';
+}
+
+function openNewProject(){
+  document.getElementById('new-nombre').value='';
+  document.getElementById('new-cliente').value='';
+  document.getElementById('new-youtube').value='';
+  openModal('modal-new');
+}
+
+async function createProject(){
+  var nombre=document.getElementById('new-nombre').value.trim();
+  if(!nombre){showToast('Escribe un nombre');return;}
+  var cliente=document.getElementById('new-cliente').value.trim();
+  var youtube=document.getElementById('new-youtube').value.trim();
+  var slug=nombre.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+Date.now();
+  var {data,error}=await db.from('proyectos').insert({
+    user_id:currentUser.id, nombre, cliente, youtube_url:youtube||null, slug
+  }).select().single();
+  if(error){showToast('Error: '+error.message);return;}
+  closeModal('modal-new');
+  showToast('Proyecto creado ✓');
+  openProject(data.id, encodeURIComponent(data.nombre));
+}
+
+async function deleteProject(id){
+  if(!confirm('¿Eliminar este proyecto?'))return;
+  await db.from('proyectos').delete().eq('id',id);
+  showToast('Proyecto eliminado');
+  loadProjects();
+}
+
+function copyProjectLink(slug){
+  var url='https://jesusfcovt.github.io/venza360-viewer/?p='+slug;
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){showToast('Link copiado ✓');});}
+  else{window.prompt('Copia:',url);}
+}
+
+// ── PROJECT DETAIL ──
+async function openProject(id, nombreEnc){
+  currentProject={id, nombre:decodeURIComponent(nombreEnc)};
+  document.getElementById('detail-title').textContent=currentProject.nombre;
+  showScreen('detail-screen');
+  loadScenes();
+  // Get slug
+  var {data}=await db.from('proyectos').select('slug').eq('id',id).single();
+  if(data){
+    var url='https://jesusfcovt.github.io/venza360-viewer/?p='+data.slug;
+    document.getElementById('detail-link-url').textContent=url;
+  }
+}
+
+function copyLink(){
+  var url=document.getElementById('detail-link-url').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){showToast('Link copiado ✓');});}
+  else{window.prompt('Copia:',url);}
+}
+
+async function loadScenes(){
+  var {data}=await db.from('escenas').select('*').eq('proyecto_id',currentProject.id).order('orden');
+  var el=document.getElementById('scenes-list');
+  if(!data||data.length===0){
+    el.innerHTML='<div class="empty-state"><p>Sin escenas. Agrega tu primera imagen panorámica.</p></div>';
+    return;
+  }
+  el.innerHTML=data.map(function(s,i){
+    return '<div class="scene-item">'+
+      '<div class="scene-num">'+(i+1)+'</div>'+
+      '<div class="scene-info">'+
+        '<div class="scene-name">'+s.nombre+'</div>'+
+        (s.descripcion?'<div class="scene-desc">'+s.descripcion+'</div>':'')+
+      '</div>'+
+      (s.imagen_url?'<img src="'+s.imagen_url+'" style="width:52px;height:32px;object-fit:cover;border-radius:5px;border:1px solid var(--border);" alt="">':'')+
+      '<button class="btn-del" onclick="deleteScene(\''+s.id+'\')">×</button>'+
+    '</div>';
+  }).join('');
+}
+
+function openAddScene(){
+  document.getElementById('sc-nombre').value='';
+  document.getElementById('sc-desc').value='';
+  document.getElementById('upload-preview').innerHTML='';
+  document.getElementById('sc-file').value='';
+  openModal('modal-scene');
+}
+
+function previewFile(input){
+  if(!input.files[0])return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    document.getElementById('upload-preview').innerHTML='<img class="upload-thumb" src="'+e.target.result+'">';
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function addScene(){
+  var nombre=document.getElementById('sc-nombre').value.trim();
+  if(!nombre){showToast('Escribe un nombre');return;}
+  var desc=document.getElementById('sc-desc').value.trim();
+  var file=document.getElementById('sc-file').files[0];
+  var imgUrl=null;
+
+  if(file){
+    document.getElementById('upload-progress').style.display='block';
+    var ext=file.name.split('.').pop();
+    var path=currentUser.id+'/'+currentProject.id+'/'+Date.now()+'.'+ext;
+    var {data:upData,error:upErr}=await db.storage.from('panoramas').upload(path,file,{upsert:true});
+    document.getElementById('upload-progress').style.display='none';
+    if(upErr){showToast('Error subiendo imagen: '+upErr.message);return;}
+    var {data:urlData}=db.storage.from('panoramas').getPublicUrl(path);
+    imgUrl=urlData.publicUrl;
+  }
+
+  // Count existing scenes for order
+  var {count}=await db.from('escenas').select('*',{count:'exact'}).eq('proyecto_id',currentProject.id);
+  
+  var {error}=await db.from('escenas').insert({
+    proyecto_id:currentProject.id, nombre, descripcion:desc||null, imagen_url:imgUrl, orden:count||0
+  });
+  if(error){showToast('Error: '+error.message);return;}
+  closeModal('modal-scene');
+  showToast('Escena agregada ✓');
+  loadScenes();
+}
+
+async function deleteScene(id){
+  if(!confirm('¿Eliminar esta escena?'))return;
+  await db.from('escenas').delete().eq('id',id);
+  showToast('Escena eliminada');
+  loadScenes();
+}
+
+// ── MODALS ──
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(function(m){
+  m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});
+});
+
+// ── TOAST ──
+var toastTimer;
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){t.classList.remove('show');},2500);
+}
+</script>
+</body>
+</html>
